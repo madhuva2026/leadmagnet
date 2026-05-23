@@ -436,6 +436,7 @@ const DEFAULTS = {
 export default function App() {
   const [form, setForm] = useState(DEFAULTS);
   const [result, setResult] = useState(null);
+  const [page, setPage] = useState('input');
 
   const set = (key) => (val) => setForm(f => ({ ...f, [key]: val }));
 
@@ -443,176 +444,191 @@ export default function App() {
     if (form.retireAge <= form.currentAge) return alert('Retirement age must be greater than current age');
     if (form.lifeExpectancy <= form.retireAge) return alert('Life expectancy must be greater than retirement age');
     setResult(calculate(form));
+    setPage('results');
   };
 
   return (
     <div>
+      <div className="topbar">
+        <div className="topbar-brand">Retirement Readiness</div>
+        <div className="topbar-note">Financial Planner</div>
+      </div>
+
       <div className="header">
-        <div className="header-badge">🇮🇳 India · INR</div>
-        <h1>Retirement Readiness<br />Calculator</h1>
-        <p>Plan your financial future with precision. Enter your details to get a comprehensive retirement analysis.</p>
+        <div className="step-label">{page === 'input' ? 'STEP 1 OF 2' : 'STEP 2 OF 2'}</div>
+        <h1>{page === 'input' ? 'Your Retirement Readiness Score' : 'Your Retirement Score'}</h1>
+        <p>
+          {page === 'input'
+            ? "Answer a few questions about your finances and we'll generate a complete retirement scorecard you can download as a PDF."
+            : 'Review your retirement outlook, savings gap, and key metrics to plan your future.'}
+        </p>
       </div>
 
       <div className="container">
-        <div className="grid-2">
-          {/* ── LEFT COLUMN: inputs ── */}
-          <div>
-            {/* Personal */}
-            <div className="card" style={{ marginBottom: '1.5rem' }}>
-              <div className="card-title"><span className="card-title-icon">👤</span>Personal Details</div>
-              <div className="field-row">
-                <Field label="Current Age" value={form.currentAge} onChange={set('currentAge')} min={18} max={80} suffix="yrs" />
-                <Field label="Retirement Age" value={form.retireAge} onChange={set('retireAge')} min={40} max={80} suffix="yrs" />
-              </div>
-              <Field label="Life Expectancy" value={form.lifeExpectancy} onChange={set('lifeExpectancy')} min={60} max={100} suffix="yrs" />
-            </div>
-
-            {/* Income & Expenses */}
-            <div className="card" style={{ marginBottom: '1.5rem' }}>
-              <div className="card-title"><span className="card-title-icon">💰</span>Income & Expenses</div>
-              <Field label="Monthly Income" prefix="₹" value={form.monthlyIncome} onChange={set('monthlyIncome')} min={0} />
-              <Field label="Monthly Household Expenses" prefix="₹" value={form.monthlyExpenses} onChange={set('monthlyExpenses')} min={0} />
-              <div className="field-row">
-                <Field label="Monthly EMI" prefix="₹" value={form.monthlyEMI} onChange={set('monthlyEMI')} min={0} />
-                <Field label="Parents' Support" prefix="₹" value={form.parentsSupport} onChange={set('parentsSupport')} min={0} />
-              </div>
-            </div>
-
-            {/* Savings & SIP */}
-            <div className="card" style={{ marginBottom: '1.5rem' }}>
-              <div className="card-title"><span className="card-title-icon">📈</span>Savings & Investments</div>
-              <Field label="Total Savings Today" prefix="₹" value={form.currentSavings} onChange={set('currentSavings')} min={0} />
-              <Field label="Current Monthly SIP" prefix="₹" value={form.monthlySIP} onChange={set('monthlySIP')} min={0} />
-              <Field label="Emergency Fund" prefix="₹" value={form.emergencyFund} onChange={set('emergencyFund')} min={0} />
-            </div>
-
-            {/* Rate assumptions */}
-            <div className="card">
-              <div className="card-title"><span className="card-title-icon">⚙️</span>Rate Assumptions</div>
-              <SliderField label="Expected Annual Return" value={form.returnRate} onChange={set('returnRate')} min={4} max={20} suffix="%" />
-              <SliderField label="Expected Inflation" value={form.inflation} onChange={set('inflation')} min={2} max={12} suffix="%" />
-            </div>
-
-            <button className="btn-calculate" onClick={handleCalc}>
-              Calculate My Retirement Score →
-            </button>
-          </div>
-
-          {/* ── RIGHT COLUMN: results ── */}
-          <div>
-            {!result ? (
-              <div className="card" style={{ textAlign: 'center', padding: '4rem 2rem', color: 'var(--muted)' }}>
-                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🏦</div>
-                <p style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.1rem', color: 'var(--text)', marginBottom: '0.5rem' }}>Your results will appear here</p>
-                <p style={{ fontSize: '0.85rem' }}>Fill in your details and click Calculate to see your personalised retirement analysis.</p>
-              </div>
-            ) : (
-              <div className="results">
-                {/* Hero */}
-                <div className="hero-result">
-                  <DonutRing progress={result.progress} />
-                  <div className={`hero-status ${result.gap <= 0 ? 'on-track' : 'needs-work'}`}>
-                    {result.gap <= 0 ? '🎉 On Track!' : '⚠️ Needs Attention'}
-                  </div>
-                  <div className="hero-desc">
-                    {result.gap <= 0
-                      ? `Your projected corpus of ${fmt(result.totalCorpus)} exceeds the required ${fmt(result.corpusRequired)}. You have a surplus of ${fmt(Math.abs(result.gap))}.`
-                      : `You need ${fmt(result.corpusRequired)} but are projected to have ${fmt(result.totalCorpus)}. Close the ${fmt(result.gap)} gap by increasing your SIP.`}
-                  </div>
-                </div>
-
-                {/* Corpus metrics */}
-                <div className="metric-grid">
-                  <div className="metric-card">
-                    <div className="metric-label">Corpus Required</div>
-                    <div className="metric-value">{fmt(result.corpusRequired)}</div>
-                    <div className="metric-sub">35× annual expenses at retirement</div>
-                  </div>
-                  <div className="metric-card">
-                    <div className="metric-label">Total Projected Corpus</div>
-                    <div className={`metric-value ${result.gap <= 0 ? 'positive' : 'negative'}`}>{fmt(result.totalCorpus)}</div>
-                    <div className="metric-sub">Savings + SIP at {form.returnRate}% p.a.</div>
-                  </div>
-                  <div className="metric-card">
-                    <div className="metric-label">FV of Savings</div>
-                    <div className="metric-value positive">{fmt(result.fvSavings)}</div>
-                    <div className="metric-sub">Current ₹{(form.currentSavings / 1e5).toFixed(1)}L grown</div>
-                  </div>
-                  <div className="metric-card">
-                    <div className="metric-label">FV of SIP</div>
-                    <div className="metric-value positive">{fmt(result.fvSIP)}</div>
-                    <div className="metric-sub">₹{(form.monthlySIP / 1000).toFixed(0)}K/mo compounded</div>
-                  </div>
-                  <div className="metric-card">
-                    <div className="metric-label">Corpus Gap / Surplus</div>
-                    <div className={`metric-value ${result.gap <= 0 ? 'positive' : 'negative'}`}>
-                      {result.gap <= 0 ? '+' : '-'}{fmt(Math.abs(result.gap))}
-                    </div>
-                    <div className="metric-sub">{result.gap <= 0 ? 'Surplus' : 'Shortfall'}</div>
-                  </div>
-                  <div className="metric-card">
-                    <div className="metric-label">Monthly Investable Surplus</div>
-                    <div className={`metric-value ${result.monthlyInvest > 0 ? 'positive' : 'negative'}`}>{fmt(result.monthlyInvest)}</div>
-                    <div className="metric-sub">After all obligations</div>
-                  </div>
-                </div>
-
-                {/* Timeline */}
-                <div className="card" style={{ marginBottom: '1.5rem' }}>
-                  <div className="card-title"><span className="card-title-icon">🗓️</span>Timeline</div>
-                  <div style={{ display: 'flex', justifyContent: 'space-around', textAlign: 'center' }}>
-                    {[
-                      { v: result.yearsToRetire, l: 'Years to Retire' },
-                      { v: result.yearsInRetire, l: 'Years in Retirement' },
-                      { v: form.retireAge, l: 'Retirement Age' },
-                    ].map(({ v, l }) => (
-                      <div key={l}>
-                        <div style={{ fontFamily: 'Playfair Display,serif', fontSize: '2rem', fontWeight: 700, color: 'var(--accent)' }}>{v}</div>
-                        <div style={{ fontSize: '0.72rem', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{l}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Inflation */}
-                <div className="card" style={{ marginBottom: '1.5rem' }}>
-                  <div className="card-title"><span className="card-title-icon">📊</span>Inflation Impact</div>
-                  <div className="metric-grid">
-                    <div>
-                      <div className="metric-label">Today's Expenses</div>
-                      <div className="metric-value">{fmt(form.monthlyExpenses)}<span style={{ fontSize: '0.7rem', color: 'var(--muted)' }}>/mo</span></div>
-                    </div>
-                    <div>
-                      <div className="metric-label">At Retirement ({form.retireAge})</div>
-                      <div className="metric-value" style={{ color: 'var(--accent)' }}>{fmt(result.adjMonthly)}<span style={{ fontSize: '0.7rem', color: 'var(--muted)' }}>/mo</span></div>
-                    </div>
-                  </div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--muted)', marginTop: '0.8rem' }}>
-                    Inflation factor: <strong style={{ color: 'var(--text)' }}>{result.inflFactor.toFixed(2)}×</strong> at {form.inflation}% over {result.yearsToRetire} years
-                  </div>
-                </div>
-
-                {/* Financial Health */}
-                <div className="health-section">
-                  <div className="health-title">💡 Financial Health Snapshot</div>
-                  <HealthBar label="EMI as % of Income" value={result.emiPct} maxVal={60} good={30} warn={40} />
-                  <HealthBar label="Total Obligations as % of Income" value={result.obligPct} maxVal={60} good={35} warn={50} />
-                  <ProgressBar label="Emergency Fund Coverage" value={result.emergPct} />
-                  <ProgressBar label="SIP as % of Investable Surplus" value={result.sipPct} />
-                </div>
-
-                <div className="disclaimer">
-                  ⚠️ Numbers are illustrative planning estimates. Not financial advice.<br />
-                  Consult a SEBI-registered investment advisor for personalised guidance.
-                </div>
-
-                <button className="btn-download" onClick={() => generatePDF(form, result)}>
-                  📥 Download Your Retirement Plan (PDF)
-                </button>
-              </div>
-            )}
-          </div>
+        <div className="page-nav">
+          <button className={`page-step ${page === 'input' ? 'active' : ''}`} onClick={() => setPage('input')}>
+            1. Inputs
+          </button>
+          <button className={`page-step ${page === 'results' ? 'active' : ''}`} disabled={!result} onClick={() => result && setPage('results')}>
+            2. Results
+          </button>
         </div>
+
+        {page === 'input' ? (
+          <div className="grid-1">
+            <div>
+              {/* Personal */}
+              <div className="card" style={{ marginBottom: '1.5rem' }}>
+                <div className="card-title"><span className="card-title-icon">👤</span>Personal Details</div>
+                <div className="field-row">
+                  <Field label="Current Age" value={form.currentAge} onChange={set('currentAge')} min={18} max={80} suffix="yrs" />
+                  <Field label="Retirement Age" value={form.retireAge} onChange={set('retireAge')} min={40} max={80} suffix="yrs" />
+                </div>
+                <Field label="Life Expectancy" value={form.lifeExpectancy} onChange={set('lifeExpectancy')} min={60} max={100} suffix="yrs" />
+              </div>
+
+              {/* Income & Expenses */}
+              <div className="card" style={{ marginBottom: '1.5rem' }}>
+                <div className="card-title"><span className="card-title-icon">💰</span>Income & Expenses</div>
+                <Field label="Monthly Income" prefix="₹" value={form.monthlyIncome} onChange={set('monthlyIncome')} min={0} />
+                <Field label="Monthly Household Expenses" prefix="₹" value={form.monthlyExpenses} onChange={set('monthlyExpenses')} min={0} />
+                <div className="field-row">
+                  <Field label="Monthly EMI" prefix="₹" value={form.monthlyEMI} onChange={set('monthlyEMI')} min={0} />
+                  <Field label="Parents' Support" prefix="₹" value={form.parentsSupport} onChange={set('parentsSupport')} min={0} />
+                </div>
+              </div>
+
+              {/* Savings & SIP */}
+              <div className="card" style={{ marginBottom: '1.5rem' }}>
+                <div className="card-title"><span className="card-title-icon">📈</span>Savings & Investments</div>
+                <Field label="Total Savings Today" prefix="₹" value={form.currentSavings} onChange={set('currentSavings')} min={0} />
+                <Field label="Current Monthly SIP" prefix="₹" value={form.monthlySIP} onChange={set('monthlySIP')} min={0} />
+                <Field label="Emergency Fund" prefix="₹" value={form.emergencyFund} onChange={set('emergencyFund')} min={0} />
+              </div>
+
+              {/* Rate assumptions */}
+              <div className="card">
+                <div className="card-title"><span className="card-title-icon">⚙️</span>Rate Assumptions</div>
+                <SliderField label="Expected Annual Return" value={form.returnRate} onChange={set('returnRate')} min={4} max={20} suffix="%" />
+                <SliderField label="Expected Inflation" value={form.inflation} onChange={set('inflation')} min={2} max={12} suffix="%" />
+              </div>
+
+              <button className="btn-calculate" onClick={handleCalc}>
+                Get Your Retirement Score →
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="results-page">
+            <button className="btn-secondary" onClick={() => setPage('input')}>
+              ← Edit Inputs
+            </button>
+
+            <div className="results">
+              {/* Hero */}
+              <div className="hero-result">
+                <DonutRing progress={result.progress} />
+                <div className={`hero-status ${result.gap <= 0 ? 'on-track' : 'needs-work'}`}>
+                  {result.gap <= 0 ? '🎉 On Track!' : '⚠️ Needs Attention'}
+                </div>
+                <div className="hero-desc">
+                  {result.gap <= 0
+                    ? `Your projected corpus of ${fmt(result.totalCorpus)} exceeds the required ${fmt(result.corpusRequired)}. You have a surplus of ${fmt(Math.abs(result.gap))}.`
+                    : `You need ${fmt(result.corpusRequired)} but are projected to have ${fmt(result.totalCorpus)}. Close the ${fmt(result.gap)} gap by increasing your SIP.`}
+                </div>
+              </div>
+
+              {/* Corpus metrics */}
+              <div className="metric-grid">
+                <div className="metric-card">
+                  <div className="metric-label">Corpus Required</div>
+                  <div className="metric-value">{fmt(result.corpusRequired)}</div>
+                  <div className="metric-sub">35× annual expenses at retirement</div>
+                </div>
+                <div className="metric-card">
+                  <div className="metric-label">Total Projected Corpus</div>
+                  <div className={`metric-value ${result.gap <= 0 ? 'positive' : 'negative'}`}>{fmt(result.totalCorpus)}</div>
+                  <div className="metric-sub">Savings + SIP at {form.returnRate}% p.a.</div>
+                </div>
+                <div className="metric-card">
+                  <div className="metric-label">FV of Savings</div>
+                  <div className="metric-value positive">{fmt(result.fvSavings)}</div>
+                  <div className="metric-sub">Current ₹{(form.currentSavings / 1e5).toFixed(1)}L grown</div>
+                </div>
+                <div className="metric-card">
+                  <div className="metric-label">FV of SIP</div>
+                  <div className="metric-value positive">{fmt(result.fvSIP)}</div>
+                  <div className="metric-sub">₹{(form.monthlySIP / 1000).toFixed(0)}K/mo compounded</div>
+                </div>
+                <div className="metric-card">
+                  <div className="metric-label">Corpus Gap / Surplus</div>
+                  <div className={`metric-value ${result.gap <= 0 ? 'positive' : 'negative'}`}>
+                    {result.gap <= 0 ? '+' : '-'}{fmt(Math.abs(result.gap))}
+                  </div>
+                  <div className="metric-sub">{result.gap <= 0 ? 'Surplus' : 'Shortfall'}</div>
+                </div>
+                <div className="metric-card">
+                  <div className="metric-label">Monthly Investable Surplus</div>
+                  <div className={`metric-value ${result.monthlyInvest > 0 ? 'positive' : 'negative'}`}>{fmt(result.monthlyInvest)}</div>
+                  <div className="metric-sub">After all obligations</div>
+                </div>
+              </div>
+
+              {/* Timeline */}
+              <div className="card" style={{ marginBottom: '1.5rem' }}>
+                <div className="card-title"><span className="card-title-icon">🗓️</span>Timeline</div>
+                <div style={{ display: 'flex', justifyContent: 'space-around', textAlign: 'center' }}>
+                  {[
+                    { v: result.yearsToRetire, l: 'Years to Retire' },
+                    { v: result.yearsInRetire, l: 'Years in Retirement' },
+                    { v: form.retireAge, l: 'Retirement Age' },
+                  ].map(({ v, l }) => (
+                    <div key={l}>
+                      <div style={{ fontFamily: 'Playfair Display,serif', fontSize: '2rem', fontWeight: 700, color: 'var(--accent)' }}>{v}</div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{l}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Inflation */}
+              <div className="card" style={{ marginBottom: '1.5rem' }}>
+                <div className="card-title"><span className="card-title-icon">📊</span>Inflation Impact</div>
+                <div className="metric-grid">
+                  <div>
+                    <div className="metric-label">Today's Expenses</div>
+                    <div className="metric-value">{fmt(form.monthlyExpenses)}<span style={{ fontSize: '0.7rem', color: 'var(--muted)' }}>/mo</span></div>
+                  </div>
+                  <div>
+                    <div className="metric-label">At Retirement ({form.retireAge})</div>
+                    <div className="metric-value" style={{ color: 'var(--accent)' }}>{fmt(result.adjMonthly)}<span style={{ fontSize: '0.7rem', color: 'var(--muted)' }}>/mo</span></div>
+                  </div>
+                </div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--muted)', marginTop: '0.8rem' }}>
+                  Inflation factor: <strong style={{ color: 'var(--text)' }}>{result.inflFactor.toFixed(2)}×</strong> at {form.inflation}% over {result.yearsToRetire} years
+                </div>
+              </div>
+
+              {/* Financial Health */}
+              <div className="health-section">
+                <div className="health-title">💡 Financial Health Snapshot</div>
+                <HealthBar label="EMI as % of Income" value={result.emiPct} maxVal={60} good={30} warn={40} />
+                <HealthBar label="Total Obligations as % of Income" value={result.obligPct} maxVal={60} good={35} warn={50} />
+                <ProgressBar label="Emergency Fund Coverage" value={result.emergPct} />
+                <ProgressBar label="SIP as % of Investable Surplus" value={result.sipPct} />
+              </div>
+
+              <div className="disclaimer">
+                ⚠️ Numbers are illustrative planning estimates. Not financial advice.<br />
+                Consult a SEBI-registered investment advisor for personalised guidance.
+              </div>
+
+              <button className="btn-download" onClick={() => generatePDF(form, result)}>
+                📥 Download Your Retirement Plan (PDF)
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
